@@ -196,12 +196,17 @@ const getRowsOfGroup = (groupKey: string | object) => {
           <el-divider direction="vertical"></el-divider>
         </div>
         <el-table v-if="!groupByColumnKey" :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="date" label="Date" width="180" />
-          <el-table-column prop="dateTest" label="Actual Date Test" width="180" />
-          <el-table-column prop="name" label="Name" width="180" />
-          <el-table-column prop="address" label="Address" />
-          <el-table-column prop="department" label="Department" />
-          <el-table-column prop="status" label="Status">
+          <el-table-column prop="date" label="Date" show-overflow-tooltip width="180" />
+          <el-table-column
+            prop="dateTest"
+            label="Actual Date Test"
+            show-overflow-tooltip
+            width="180"
+          />
+          <el-table-column prop="name" label="Name" show-overflow-tooltip width="180" />
+          <el-table-column prop="address" label="Address" show-overflow-tooltip />
+          <el-table-column prop="department" label="Department" show-overflow-tooltip />
+          <el-table-column prop="status" label="Status" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.status.tbllabel }}
             </template>
@@ -228,12 +233,17 @@ const getRowsOfGroup = (groupKey: string | object) => {
               </h3>
             </div>
             <el-table :data="getRowsOfGroup(val)" stripe border style="width: 100%">
-              <el-table-column prop="date" label="Date" width="180" />
-              <el-table-column prop="dateTest" label="Actual Date Test" width="180" />
-              <el-table-column prop="name" label="Name" width="180" />
-              <el-table-column prop="address" label="Address" />
-              <el-table-column prop="department" label="Department" />
-              <el-table-column prop="status" label="Status">
+              <el-table-column prop="date" label="Date" show-overflow-tooltip width="180" />
+              <el-table-column
+                prop="dateTest"
+                label="Actual Date Test"
+                show-overflow-tooltip
+                width="180"
+              />
+              <el-table-column prop="name" label="Name" show-overflow-tooltip width="180" />
+              <el-table-column prop="address" label="Address" show-overflow-tooltip />
+              <el-table-column prop="department" label="Department" show-overflow-tooltip />
+              <el-table-column prop="status" label="Status" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.status.tbllabel }}
                 </template>
