@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, watch, type Ref, reactive } from 'vue'
 import {
   uniq as _uniq,
   map as _map,
   filter as _filter,
   find as _find,
   uniqBy as _uniqBy,
-  forEach as _forEach
+  forEach as _forEach,
+  values as _values
 } from 'lodash'
 
 interface LooseObject {
@@ -113,10 +114,83 @@ const groupingOptions = new Map<string, string>([
   ['status', 'Status']
 ])
 
+// currently same as groupingOptions but could be different
+const keyToHumanReadable = new Map<string, string>([
+  ['date', 'Date'],
+  ['dateTest', 'Actual Date Test'],
+  ['name', 'Name'],
+  ['address', 'Address'],
+  ['department', 'Department'],
+  ['status', 'Status']
+])
+
+const columnMetaData = reactive([
+  {
+    key: 'date',
+    label: 'Date',
+    type: 'string',
+    sortable: true,
+    groupable: true
+  },
+  {
+    key: 'dateTest',
+    label: 'Actual Date Test',
+    type: 'Date',
+    sortable: true,
+    groupable: true
+  },
+  {
+    key: 'name',
+    label: 'Name',
+    type: 'string',
+    sortable: true,
+    groupable: true
+  },
+  {
+    key: 'address',
+    label: 'Address',
+    type: 'string',
+    sortable: true,
+    groupable: true
+  },
+  {
+    key: 'department',
+    label: 'Department',
+    type: 'string',
+    sortable: true,
+    groupable: true
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'object',
+    sortable: true,
+    groupable: true
+  }
+])
+
+const selectedColums = ref([])
+const dynamicKeys = computed(() => {
+  if (columnMetaData.length <= 0) return []
+  return Object.keys(tableData[0]).map((key) => {
+    return {
+      key,
+      label: keyToHumanReadable.get(key) ? keyToHumanReadable.get(key) : key
+    }
+  })
+})
+const visibleCols = computed(() => {
+  if (dynamicKeys.value.length <= 0) return []
+  return columnMetaData.filter((key) => {
+    return _values(selectedColums.value).some((col) => col === key.key)
+  })
+})
+
 const distinctValuesOfColumn = computed(() => {
   if (!groupByColumnKey.value) return []
   const columnType = typeof tableData[0][groupByColumnKey.value]
-  if (columnType === 'object') {
+  const columnIsDate = tableData[0][groupByColumnKey.value] instanceof Date
+  if (columnType === 'object' && !columnIsDate) {
     const objectsOfRows = _map(tableData, groupByColumnKey.value)
     return _uniqBy(objectsOfRows, (obj: { tbllabel: any }) => obj.tbllabel)
   }
@@ -132,7 +206,7 @@ watch(groupByColumnKey, (val: string) => {
     const filterObj: LooseObject = {}
 
     let filteredData: any[] = []
-    if (typeof distinctValue === 'object') {
+    if (typeof distinctValue === 'object' && !(distinctValue instanceof Date)) {
       const objectsOfRow = tableData.map((row) => {
         return {
           tbllabel: row[groupByColumnKey.value].tbllabel,
@@ -155,7 +229,7 @@ watch(groupByColumnKey, (val: string) => {
 const getRowsOfGroup = (groupKey: string | object) => {
   const data = _find(groupedData.value, { group: groupKey })
   if (data) {
-    if (typeof groupKey === 'object') {
+    if (typeof groupKey === 'object' && !(groupKey instanceof Date)) {
       // @ts-ignore
       return _map(data.rows, 'row')
     } else {
@@ -170,7 +244,9 @@ const getRowsOfGroup = (groupKey: string | object) => {
 <template>
   <main>
     <el-row class="mt-10">
-      <el-col :xs="4" :md="4" :lg="4" :xl="4"></el-col>
+      <el-col :xs="4" :md="4" :lg="4" :xl="4">
+        <el-transfer :data="dynamicKeys" v-model="selectedColums" />
+      </el-col>
       <el-col :xs="16" :md="16" :lg="16" :xl="16">
         <div class="flex h-[3rem] items-center bg-red-500">
           <el-select
@@ -195,29 +271,32 @@ const getRowsOfGroup = (groupKey: string | object) => {
           </div>
           <el-divider direction="vertical"></el-divider>
         </div>
-        <el-table v-if="!groupByColumnKey" :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="date" label="Date" show-overflow-tooltip width="180" />
+        <el-table
+          v-if="!groupByColumnKey"
+          :data="tableData"
+          stripe
+          border
+          style="width: 100%"
+          class="basic-fade-in"
+        >
           <el-table-column
-            prop="dateTest"
-            label="Actual Date Test"
+            v-for="(cd, index) in visibleCols"
+            :key="index"
+            :prop="cd.key"
+            :label="cd.label"
             show-overflow-tooltip
-            width="180"
-          />
-          <el-table-column prop="name" label="Name" show-overflow-tooltip width="180" />
-          <el-table-column prop="address" label="Address" show-overflow-tooltip />
-          <el-table-column prop="department" label="Department" show-overflow-tooltip />
-          <el-table-column prop="status" label="Status" show-overflow-tooltip>
-            <template #default="{ row }">
+          >
+            <template v-if="cd.type === 'object'" #default="{ row }">
               {{ row.status.tbllabel }}
             </template>
           </el-table-column>
         </el-table>
 
         <section v-for="(val, index) in distinctValuesOfColumn" :key="index">
-          <div v-if="groupByColumnKey">
+          <div v-if="groupByColumnKey" class="basic-fade-in">
             <div class="mt-3 h-[3rem] bg-green-500 pl-2">
               <h3
-                v-if="typeof val === 'object'"
+                v-if="typeof val === 'object' && !(val instanceof Date)"
                 class="flex h-full items-center text-[.9rem] font-bold text-white"
               >
                 {{
@@ -233,18 +312,14 @@ const getRowsOfGroup = (groupKey: string | object) => {
               </h3>
             </div>
             <el-table :data="getRowsOfGroup(val)" stripe border style="width: 100%">
-              <el-table-column prop="date" label="Date" show-overflow-tooltip width="180" />
               <el-table-column
-                prop="dateTest"
-                label="Actual Date Test"
+                v-for="(cd, index) in visibleCols"
+                :key="index"
+                :prop="cd.key"
+                :label="cd.label"
                 show-overflow-tooltip
-                width="180"
-              />
-              <el-table-column prop="name" label="Name" show-overflow-tooltip width="180" />
-              <el-table-column prop="address" label="Address" show-overflow-tooltip />
-              <el-table-column prop="department" label="Department" show-overflow-tooltip />
-              <el-table-column prop="status" label="Status" show-overflow-tooltip>
-                <template #default="{ row }">
+              >
+                <template v-if="cd.type === 'object'" #default="{ row }">
                   {{ row.status.tbllabel }}
                 </template>
               </el-table-column>
@@ -256,3 +331,18 @@ const getRowsOfGroup = (groupKey: string | object) => {
     </el-row>
   </main>
 </template>
+
+<style scoped>
+.basic-fade-in {
+  animation: fadein 0.15s;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
