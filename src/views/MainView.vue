@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Ref, reactive } from 'vue'
+import { computed, ref, watch, type Ref, reactive, onMounted } from 'vue'
 import {
   uniq as _uniq,
   map as _map,
@@ -169,7 +169,13 @@ const columnMetaData = reactive([
   }
 ])
 
-const selectedColums = ref([])
+// should be an array from props
+onMounted(() => {
+  selectedColums.value = columnMetaData.map((col) => col.key)
+})
+
+const selectedColums = ref<string[]>([])
+
 const dynamicKeys = computed(() => {
   if (columnMetaData.length <= 0) return []
   return Object.keys(tableData[0]).map((key) => {
@@ -244,17 +250,16 @@ const getRowsOfGroup = (groupKey: string | object) => {
 <template>
   <main>
     <el-row class="mt-10">
-      <el-col :xs="4" :md="4" :lg="4" :xl="4">
-        <el-transfer :data="dynamicKeys" v-model="selectedColums" />
-      </el-col>
+      <el-col :xs="4" :md="4" :lg="4" :xl="4"></el-col>
       <el-col :xs="16" :md="16" :lg="16" :xl="16">
         <div class="flex h-[3rem] items-center bg-red-500">
           <el-select
-            v-if="!groupByColumnKey"
             v-model="groupByColumnKey"
             class="ml-2"
             placeholder="Group By"
             size="small"
+            filterable
+            no-match-text="No matching grouping options"
           >
             <el-option
               v-for="(item, index) in groupingOptions"
@@ -263,13 +268,19 @@ const getRowsOfGroup = (groupKey: string | object) => {
               :label="item[1]"
             />
           </el-select>
-          <div v-if="groupByColumnKey" class="ml-2 flex items-center">
-            <span class="mr-1 text-[.9rem] text-white">Grouped By:</span>
-            <el-tag type="info" closable disable-transitions @close="groupByColumnKey = ''">{{
-              groupingOptions.get(groupByColumnKey)
-            }}</el-tag>
-          </div>
           <el-divider direction="vertical"></el-divider>
+          <el-popover placement="bottom" :width="590" trigger="hover">
+            <template #reference>
+              <el-button style="margin-right: 16px" size="small">Columns</el-button>
+            </template>
+            <el-transfer
+              :data="dynamicKeys"
+              v-model="selectedColums"
+              :titles="['Hidden', 'Shown']"
+              filterable
+              filter-placeholder="Search Columns"
+            />
+          </el-popover>
         </div>
         <el-table
           v-if="!groupByColumnKey"
@@ -297,14 +308,14 @@ const getRowsOfGroup = (groupKey: string | object) => {
             <div class="mt-3 h-[3rem] bg-green-500 pl-2">
               <h3
                 v-if="typeof val === 'object' && !(val instanceof Date)"
-                class="flex h-full items-center text-[.9rem] font-bold text-white"
+                class="flex h-full items-center text-[0.9rem] font-bold text-white"
               >
                 {{
                   //@ts-ignore
                   val.tbllabel
                 }}
               </h3>
-              <h3 v-else class="flex h-full items-center text-[.9rem] font-bold text-white">
+              <h3 v-else class="flex h-full items-center text-[0.9rem] font-bold text-white">
                 {{
                   //@ts-ignore
                   val
